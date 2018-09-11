@@ -356,7 +356,8 @@ class assStackQuestionFeedbackGUI
 		if ($mode == "correct") {
 			$string = "";
 			//feedback
-			$string .= '<div class="alert alert-warning" role="alert">';
+			//$string .= '<div class="alert alert-warning" role="alert">';
+			$string .= '<div>';  //mg1023 remove yellow bg
 			//Generic feedback
 			$string .= $prt['status']['message'];
 			//$string .= '<br>';
@@ -382,7 +383,8 @@ class assStackQuestionFeedbackGUI
 	{
 		$string = "";
 		//feedback
-		$string .= '<div class="alert alert-warning" role="alert">';
+		//$string .= '<div class="alert alert-warning" role="alert">';
+		$string .= '<div>';  //mg1023 remove yellow bg
 		//Generic feedback
 		$string .= $prt['status']['message'];
 		//$string .= '<br>';

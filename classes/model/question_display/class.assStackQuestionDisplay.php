@@ -227,7 +227,8 @@ class assStackQuestionDisplay
 		if (sizeof($this->getInlineFeedback()))
 		{
 			//feedback
-			$string .= '<div class="alert alert-warning" role="alert">';
+			//$string .= '<div class="alert alert-warning" role="alert">';
+			$string .= '<div>';  //mg1023 remove yellow bg
 			//Generic feedback
 			$string .= $this->inline_feedback['prt'][$prt_name]['status']['message'];
 			//$string .= '<br>';
