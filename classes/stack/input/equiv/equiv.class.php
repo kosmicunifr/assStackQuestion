@@ -498,22 +498,28 @@ class stack_equiv_input extends stack_input {
         if ($this->get_parameter('showValidation', 1) == 0 && self::INVALID != $state->status) {
             return '';
         }
-        $feedback = stack_maths::process_lang_string($state->contentsdisplayed);
+
+		$feedback = "";
+		$textarea_html = "";
+		foreach ($state->contents as $key => $val) {
+			$textarea_html .= '<code>'.$val.'</code></br>';
+		}
+
+		$feedback .= html_writer::tag('p', "<table class='xqcas_validation'><tr><td class='xqcas_validation'>" . $textarea_html . "</td><td class='xqcas_validation'>" . stack_string('studentValidation_yourLastAnswer', stack_maths::process_lang_string($state->contentsdisplayed)) . "</td></tr>");
 
         if ($this->requires_validation() && '' !== $state->contents) {
-            $feedback .= html_writer::empty_tag('input', array('type' => 'hidden',
-                    'name' => $fieldname . '_val', 'value' => $this->contents_to_maxima($state->contents)));
+			$feedback .= html_writer::empty_tag('input', array('type' => 'hidden', 'name' => $fieldname . '_val', 'value' => $this->contents_to_maxima($state->contents)));
         }
 
         if (self::INVALID == $state->status) {
-            $feedback .= html_writer::tag('p', stack_string('studentValidation_invalidAnswer'));
+			$feedback .= html_writer::tag('p', "<tr><td class='xqcas_validation_status'>".stack_string('studentValidation_invalidAnswer'). "</td></tr>");
         }
 
         if ($this->get_parameter('showValidation', 1) == 1 && !($state->lvars === '' or $state->lvars === '[]')) {
-            $feedback .= html_writer::tag('p', stack_string('studentValidation_listofvariables', $state->lvars));
+			$feedback .= "<tr><td class='xqcas_validation_variables'>".$this->tag_listofvariables($state->lvars). "</td></tr>";
         }
 
-        return $feedback;
+        return $feedback."</table>";
     }
 
     /**

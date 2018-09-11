@@ -825,7 +825,8 @@ abstract class stack_input
 			$valid = false;
 		} else
 		{
-			$display = '\[ ' . $answer->get_display() . ' \]';
+			//fim: #40 Change [/ to (/ to get validation inline
+			$display = '\( ' . $answer->get_display() . ' \)';
 		}
 
 		// Guard clause at this point.
@@ -1003,8 +1004,37 @@ abstract class stack_input
 		{
 			return '';
 		}
-		$feedback = '';
-		$feedback .= html_writer::tag('p', stack_string('studentValidation_yourLastAnswer', $state->contentsdisplayed));
+		$feedback = '<table class="xqcas_validation">';
+
+		//fim: 42 Change validation display for each input type and other feedback required
+		if (is_a($this, "stack_algebraic_input") OR is_a($this, "stack_numerical_input") OR is_a($this, "stack_singlechar_input") OR is_a($this, "stack_boolean_input") OR is_a($this, "stack_units_input"))
+		{
+			$user_answer = $this->contents_to_maxima($state->contents);
+			$input_html = '<code>'.$user_answer.'</code>';
+			$feedback .= html_writer::tag('p', "<tr><td class='xqcas_validation'>" . $input_html . stack_string('studentValidation_yourLastAnswer', $state->contentsdisplayed) . "</td></tr>");
+		}
+		if (is_a($this, "stack_matrix_input"))
+		{
+			$user_answer = $state->contents;
+			$matrix_input_rows = (int)$this->height;
+			$matrix_input_columns = (int)$this->width;
+
+			$user_matrix = "<table class='xqcas_matrix_validation' style='display:inline'>";
+			for ($i = 0; $i < $matrix_input_rows; $i++)
+			{
+				$user_matrix .= "<tr>";
+				for ($j = 0; $j < $matrix_input_columns; $j++)
+				{
+					$user_matrix .= "<td class='xqcas_matrix_validation'>";
+					$field_html ='<code>'.$user_answer[$i][$j].'</code>';
+					$user_matrix .= $field_html;
+					$user_matrix .= "</td>";
+				}
+				$user_matrix .= "</tr>";
+			}
+			$user_matrix .= "</table>";
+			$feedback .= html_writer::tag('p', "<tr><td class='xqcas_validation'>" . $user_matrix . stack_string('studentValidation_yourLastAnswer', $state->contentsdisplayed) . "</td></tr>");
+		}
 
 		if ($this->requires_validation() && '' !== $state->contents)
 		{
@@ -1013,26 +1043,27 @@ abstract class stack_input
 
 		if (self::INVALID == $state->status)
 		{
-			$feedback .= html_writer::tag('p', stack_string('studentValidation_invalidAnswer'));
+			$feedback .= html_writer::tag('p', "<tr><td class='xqcas_validation_status'>".stack_string('studentValidation_invalidAnswer'). "</td></tr>");
 		}
 
 		if ($state->errors)
 		{
-			$feedback .= html_writer::tag('p', $state->errors, array('class' => 'stack_errors'));
+			$feedback .= html_writer::tag('p', "<tr><td class='xqcas_validation_errors'>".$state->errors. "</td></tr>", array('class' => 'stack_errors'));
 		}
 
 		if ($this->get_parameter('showValidation', 1) == 1 && !($state->lvars === '' or $state->lvars === '[]'))
 		{
-			$feedback .= $this->tag_listofvariables($state->lvars);
+			$feedback .= "<tr><td class='xqcas_validation_variables'>".$this->tag_listofvariables($state->lvars). "</td></tr>";
 		}
 
-		return $feedback;
+		return $feedback. "</table>";
 	}
 
 	/* Allows individual input types to change the way the list of variables is tagged.
 	 * Used by the units input type.
 	 */
-	protected function tag_listofvariables($vars)
+	//fim:_ #44 change to public
+	public function tag_listofvariables($vars)
 	{
 		return html_writer::tag('p', stack_string('studentValidation_listofvariables', $vars));
 	}
