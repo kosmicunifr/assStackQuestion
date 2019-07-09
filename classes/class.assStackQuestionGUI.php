@@ -138,6 +138,9 @@ class assStackQuestionGUI extends assQuestionGUI
 
 	public function deletionManagement()
 	{
+		global $DIC;
+		$lng = $DIC->language();
+
 		if (is_array($_POST['cmd']['save']))
 		{
 			foreach ($this->object->getPotentialResponsesTrees() as $prt_name => $prt)
@@ -178,6 +181,92 @@ class assStackQuestionGUI extends assQuestionGUI
 
 						return TRUE;
 					}
+
+					//Copy Node
+					if (isset($_POST['cmd']['save']['copy_prt_' . $prt_name . '_node_' . $node->getNodeName()]))
+					{
+						//Do node copy here
+						$_SESSION['copy_node'] = $this->object->getId() . "_" . $prt_name . "_" . $node->getNodeName();
+						ilUtil::sendInfo($lng->txt("qpl_qst_xqcas_node_copied_to_clipboard"), TRUE);
+
+						return TRUE;
+					}
+
+					//Paste Node
+					if (isset($_POST['cmd']['save']['paste_node_in_' . $prt_name]))
+					{
+						//Do node paste here
+						$raw_data = explode("_", $_SESSION['copy_node']);
+						$paste_question_id = $raw_data[0];
+						$paste_prt_name = $raw_data[1];
+						$paste_node_name = $raw_data[2];
+
+						$paste_prt_node_list = assStackQuestionPRTNode::_read($paste_question_id, $paste_prt_name);
+						$paste_node = $paste_prt_node_list[$paste_node_name];
+
+						//Change values
+						if (is_a($paste_node, "assStackQuestionPRTNode"))
+						{
+							$paste_node->setNodeId("");
+							$paste_node->setQuestionId($this->object->getId());
+							$paste_node->setPRTName($prt_name);
+							$paste_node->setNodeName((string)$prt->getLastNodeName() + 1);
+							$paste_node->setTrueNextNode("");
+							$paste_node->setFalseNextNode("");
+
+							$paste_node->save();
+
+							unset($_SESSION['copy_node']);
+							ilUtil::sendInfo($lng->txt("qpl_qst_xqcas_node_paste"), TRUE);
+						}
+
+					}
+				}
+
+				//PRT COpy
+
+				if (isset($_POST['cmd']['save']['copy_prt_' . $prt_name]))
+				{
+					//Do node copy here
+					$_SESSION['copy_prt'] = $this->object->getId() . "_" . $prt_name;
+					ilUtil::sendInfo($lng->txt("qpl_qst_xqcas_prt_copied_to_clipboard"), TRUE);
+
+
+					return TRUE;
+				}
+
+				//Paste Node
+				if (isset($_POST['cmd']['save']['paste_prt']))
+				{
+					$raw_data = explode("_", $_SESSION['copy_prt']);
+					$paste_question_id = $raw_data[0];
+					$paste_prt_name = $raw_data[1];
+
+					$generated_prt_name = "prt" . rand(0, 1000);
+					$paste_prt_list = assStackQuestionPRT::_read($paste_question_id);
+					$paste_prt = $paste_prt_list[$paste_prt_name];
+
+					if (is_a($paste_prt, 'assStackQuestionPRT'))
+					{
+						$paste_prt->setPRTId("");
+						$paste_prt->setQuestionId($this->object->getId());
+						$paste_prt->setPRTName($generated_prt_name);
+						$paste_prt->save();
+
+						foreach ($paste_prt->getPRTNodes() as $prt_node)
+						{
+							if (is_a($prt_node, 'assStackQuestionPRTNode'))
+							{
+								$prt_node->setNodeId("");
+								$prt_node->setQuestionId($this->object->getId());
+								$prt_node->setPRTName($generated_prt_name);
+								$prt_node->save();
+							}
+						}
+					}
+					unset($_SESSION['copy_prt']);
+					ilUtil::sendInfo($lng->txt("qpl_qst_xqcas_prt_paste"), TRUE);
+
 				}
 			}
 		}
@@ -470,25 +559,20 @@ class assStackQuestionGUI extends assQuestionGUI
 		$this->plugin->includeClass("GUI/question_display/class.assStackQuestionFeedbackGUI.php");
 		$question_feedback_object = new assStackQuestionFeedbackGUI($this->plugin, $solutions);
 		$feedback_data = $question_feedback_object->getFeedback();
-
 		//Include display classes
 		$this->plugin->includeClass("model/question_display/class.assStackQuestionDisplay.php");
 		$this->plugin->includeClass("GUI/question_display/class.assStackQuestionDisplayGUI.php");
-
 		//Get question display data
 		$tpl->addCss($this->plugin->getStyleSheetLocation('css/qpl_xqcas_question_display.css'));
-
 		$value_format_user_response = assStackQuestionUtils::_getUserResponse($this->object->getId(), $this->object->getStackQuestion()->getInputs(), $feedback_data);
 		$question_display_object = new assStackQuestionDisplay($this->plugin, $this->object->getStackQuestion(), $value_format_user_response, $feedback_data);
 		$question_display_data = $question_display_object->getQuestionDisplayData(TRUE);
-
 		//Get question display GUI
 		$question_display_gui_object = new assStackQuestionDisplayGUI($this->plugin, $question_display_data);
 		$question_display_gui = $question_display_gui_object->getQuestionDisplayGUI($show_specific_inline_feedback);
 		//fill question container with HTML from assStackQuestionDisplay
 		$container_tpl = $this->plugin->getTemplate("tpl.il_as_qpl_xqcas_question_container.html");
 		$container_tpl->setVariable('QUESTION', $question_display_gui->get());
-
 		$question_output = $container_tpl->get();
 
 		return $question_output;
@@ -508,7 +592,7 @@ class assStackQuestionGUI extends assQuestionGUI
 	 * @param boolean $show_question_text
 	 * @return string The solution output of the question as HTML code
 	 */
-	function getSolutionOutput($active_id, $pass = NULL, $graphicalOutput = FALSE, $result_output = FALSE, $show_question_only = TRUE, $show_feedback = FALSE, $show_correct_solution = FALSE, $show_manual_scoring = FALSE, $show_question_text = TRUE)
+	function getSolutionOutput($active_id, $pass = NULL, $graphicalOutput = FALSE, $result_output = FALSE, $show_question_only = TRUE, $show_feedback = TRUE, $show_correct_solution = FALSE, $show_manual_scoring = FALSE, $show_question_text = TRUE)
 	{
 		$solution_template = new ilTemplate("tpl.il_as_tst_solution_output.html", TRUE, TRUE, "Modules/TestQuestionPool");
 		//Check for PASS
@@ -540,7 +624,6 @@ class assStackQuestionGUI extends assQuestionGUI
 				$solutions =& $this->object->getSolutionValues($active_id, $pass);
 			}
 		}
-
 
 		if (($active_id > 0) && (!$show_correct_solution))
 		{
@@ -610,7 +693,7 @@ class assStackQuestionGUI extends assQuestionGUI
 	 * @param bool $show_feedback TRUE if specific feedback per PRT must be shown.
 	 * @return string
 	 */
-	public function getQuestionOutput($solutions, $best_solution, $show_feedback = FALSE, $just_show = FALSE)
+	public function getQuestionOutput($solutions, $best_solution, $show_feedback, $just_show = FALSE)
 	{
 		if (isset($solutions["question_text"]) AND strlen($solutions["question_text"]))
 		{
@@ -639,7 +722,8 @@ class assStackQuestionGUI extends assQuestionGUI
 										$input_replacement = $input_answer["model_answer"];
 										$validation_replacement = $input_answer["model_answer_display"];
 										$question_text = str_replace("[[input:" . $input_name . "]]", $input_replacement, $question_text);
-										$question_text = str_replace("[[validation:" . $input_name . "]]", $validation_replacement, $question_text);									} else
+										$question_text = str_replace("[[validation:" . $input_name . "]]", $validation_replacement, $question_text);
+									} else
 									{
 										if ($just_show)
 										{
@@ -665,7 +749,7 @@ class assStackQuestionGUI extends assQuestionGUI
 										$question_text = str_replace("[[validation:" . $input_name . "]]", $validation_replacement, $question_text);
 									} else
 									{
-										$input_replacement = "</br>" . $input_answer["display"];
+										$input_replacement = $input_answer["display"];
 									}
 									$question_text = str_replace("[[input:" . $input_name . "]]", $input_replacement, $question_text);
 									break;
@@ -676,9 +760,10 @@ class assStackQuestionGUI extends assQuestionGUI
 										$input_replacement = $input_answer["model_answer"];
 										$validation_replacement = $input_answer["model_answer_display"];
 										$question_text = str_replace("[[input:" . $input_name . "]]", $input_replacement, $question_text);
-										$question_text = str_replace("[[validation:" . $input_name . "]]", $validation_replacement, $question_text);									} else
+										$question_text = str_replace("[[validation:" . $input_name . "]]", $validation_replacement, $question_text);
+									} else
 									{
-										$input_replacement = "</br>" . $input_answer["value"];
+										$input_replacement = "<textarea rows=\"4\" cols=\"50\">" . $input_answer["value"]. "</textarea>";
 									}
 									$size = $input->getBoxSize();
 									$input_text = "";
@@ -697,18 +782,20 @@ class assStackQuestionGUI extends assQuestionGUI
 										$input_replacement = $input_answer["value"];
 										if ($show_feedback)
 										{
-											if(strlen($input_answer["display"])){
-												$validation_replacement = stack_string('studentValidation_yourLastAnswer',$input_answer["display"]);
-											}else{
+											if (strlen($input_answer["display"]))
+											{
+												$validation_replacement = stack_string('studentValidation_yourLastAnswer', $input_answer["display"]);
+											} else
+											{
 												$validation_replacement = $input_answer["display"];
 											}
 											$question_text = str_replace("[[validation:" . $input_name . "]]", $validation_replacement, $question_text);
 										}
 									}
 									$size = strlen($input_replacement) + 5;
-									$input_text = "";
-									$input_text .= $input_replacement;
-									$question_text = str_replace("[[input:" . $input_name . "]]", $input_text, $question_text);
+									$input_html_display = '<input type="text" size="' . $size . '" value="' . $input_replacement . '" disabled="disabled">';
+
+									$question_text = str_replace("[[input:" . $input_name . "]]", $input_html_display, $question_text);
 									break;
 							}
 
@@ -767,7 +854,6 @@ class assStackQuestionGUI extends assQuestionGUI
 		//Check for PASS
 		if ($active_id)
 		{
-
 			require_once './Modules/Test/classes/class.ilObjTest.php';
 			if (!ilObjTest::_getUsePreviousAnswers($active_id, true))
 			{
@@ -777,7 +863,6 @@ class assStackQuestionGUI extends assQuestionGUI
 				}
 			}
 		}
-
 		//Is preview or Test
 		if (is_array($this->preview_mode))
 		{
@@ -793,11 +878,8 @@ class assStackQuestionGUI extends assQuestionGUI
 				$solutions =& $this->object->getSolutionValues($active_id, $pass);
 			}
 		}
-
 		$specific_feedback = $this->object->getOptions()->getSpecificFeedback();
-
 		//Search for feedback placeholders in specific feedback text.
-
 		foreach ($this->object->getPotentialResponsesTrees() as $prt_name => $prt)
 		{
 			if (preg_match("[[feedback:" . $prt_name . "]]", $specific_feedback))
@@ -815,7 +897,6 @@ class assStackQuestionGUI extends assQuestionGUI
 					$string .= $solutions["prt"][$prt_name]["feedback"];
 					$string .= $solutions["prt"][$prt_name]["errors"];
 					$string .= '</div>';
-
 					$specific_feedback = str_replace("[[feedback:" . $prt_name . "]]", $string, $specific_feedback);
 				} else
 				{
@@ -1575,7 +1656,7 @@ class assStackQuestionGUI extends assQuestionGUI
 			$xml_file = $_FILES["questions_xml"]["tmp_name"];
 		} else
 		{
-			$this->question_gui->object->setErrors($this->plugin->txt('error_import_question_in_test'));
+			$this->object->setErrors($this->plugin->txt('error_import_question_in_test'), true);
 
 			return;
 		}
@@ -1583,7 +1664,7 @@ class assStackQuestionGUI extends assQuestionGUI
 		//CHECK FOR NOT ALLOW IMPROT QUESTIONS DIRECTLY IN TESTS
 		if (isset($_GET['calling_test']))
 		{
-			$this->question_gui->object->setErrors($this->plugin->txt('error_import_question_in_test'));
+			$this->object->setErrors($this->plugin->txt('error_import_question_in_test'), true);
 
 			return;
 		} else

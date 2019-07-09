@@ -79,7 +79,6 @@ class assStackQuestionFeedback
 	{
 		//PRT Feedback structure creation
 		$prt_feedback = array();
-
 		//fill user response data
 		$prt_feedback['response'] = $this->fillUserResponses($prt_data['inputs_evaluated']);
 		//fill points data
@@ -168,7 +167,6 @@ class assStackQuestionFeedback
 	{
 		//Prepare feedback message
 		$feedback = '';
-
 		//For each feedback obj add a line the the message with the feedback.
 		if ($prt_state->__get('feedback'))
 		{
@@ -191,7 +189,6 @@ class assStackQuestionFeedback
 	{
 		//Prepare status structure
 		$status = array();
-
 		if ((float)$prt_state->__get('score') * (float)$prt_state->__get('weight') == (float)$prt_state->__get('weight'))
 		{
 			//CORRECT
@@ -337,9 +334,9 @@ class assStackQuestionFeedback
 			{
 				$correct_answer_array = $input->get_correct_response($this->getQuestion()->getSession()->get_value_key($input_name, true));
 				$correct_answer = $correct_answer_array[$input_name];
-				if (!$correct_answer)
+				if (!strlen($correct_answer))
 				{
-					$correct_answer = $input->get_teacher_answer();
+					$correct_answer = $this->getQuestion()->getSession()->get_value_key($input->get_teacher_answer());
 				}
 				$input_size = strlen($correct_answer) * 1.1;
 				$input_html_display = '<input type="text" size="' . $input_size . '" id="xqcas_' . $this->getQuestion()->getQuestionId() . '_' . $input_name . '_postvalidation" value="' . $correct_answer . '" disabled="disabled">';
