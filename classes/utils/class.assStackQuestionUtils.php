@@ -146,11 +146,11 @@ class assStackQuestionUtils
 		$current_response = array();
 		$user_response_from_db = array();
 
-		if (sizeof($previous_response))
+		if (!empty($previous_response))
 		{
 			foreach ($previous_response["prt"] as $prt_name => $prt_info)
 			{
-				if (sizeof($prt_info["response"]))
+				if (!empty($prt_info["response"]))
 				{
 					foreach ($prt_info["response"] as $input_name => $input_info)
 					{
@@ -750,5 +750,17 @@ class assStackQuestionUtils
 	}
 
 
+	public static function _isPhP72()
+	{
+		$php_version = phpversion();
 
+		$version = substr($php_version, 0, 3);
+		if ($version < 7.2)
+		{
+			return FALSE;
+		} else
+		{
+			return TRUE;
+		}
+	}
 }

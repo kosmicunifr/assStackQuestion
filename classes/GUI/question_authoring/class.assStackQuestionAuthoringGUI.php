@@ -229,7 +229,7 @@ class assStackQuestionAuthoringGUI
 		$inputs_section_header->setTitle($this->getPlugin()->txt('inputs'));
 		$this->getForm()->addItem($inputs_section_header);
 
-		if (sizeof($this->getQuestionGUI()->object->getInputs()))
+		if (!empty($this->getQuestionGUI()->object->getInputs()))
 		{
 			//In case of edition
 			foreach ($this->getQuestionGUI()->object->getInputs() as $input_name => $input)
@@ -256,7 +256,7 @@ class assStackQuestionAuthoringGUI
 	{
 		$prts = new ilTabsFormPropertyGUI($this->getPlugin()->txt('prts'), "question_prts", 12, FALSE);
 
-		if (sizeof($this->getQuestionGUI()->object->getPotentialResponsesTrees()))
+		if (!empty($this->getQuestionGUI()->object->getPotentialResponsesTrees()))
 		{
 			foreach ($this->getQuestionGUI()->object->getPotentialResponsesTrees() as $prt_name => $prt)
 			{
@@ -755,7 +755,7 @@ class assStackQuestionAuthoringGUI
 		$nodes = new ilTabsFormPropertyGUI($this->getPlugin()->txt('prt_nodes'), 'prt_' . $prt->getPRTName() . '_nodes', $container_width, FALSE);
 
 		$q_nodes = $prt->getPRTNodes();
-		if (sizeof($q_nodes))
+		if (!empty($q_nodes))
 		{
 			foreach ($q_nodes as $node)
 			{
@@ -768,7 +768,7 @@ class assStackQuestionAuthoringGUI
 			}
 		}
 		//Add tab per node in the current PRT
-		if (sizeof($q_nodes))
+		if (!empty($q_nodes))
 		{
 			foreach ($q_nodes as $node)
 			{
@@ -1121,11 +1121,14 @@ class assStackQuestionAuthoringGUI
 		$session_error_message = "";
 		$session_info_message = "";
 
-		if (sizeof($_SESSION["stack_authoring_errors"][$this->getQuestionGUI()->object->getId()]))
+		if (isset($_SESSION["stack_authoring_errors"][$this->getQuestionGUI()->object->getId()]))
 		{
-			foreach ($_SESSION["stack_authoring_errors"][$this->getQuestionGUI()->object->getId()] as $session_error)
+			if (!empty($_SESSION["stack_authoring_errors"][$this->getQuestionGUI()->object->getId()]))
 			{
-				$session_error_message .= $session_error . "</br>";
+				foreach ($_SESSION["stack_authoring_errors"][$this->getQuestionGUI()->object->getId()] as $session_error)
+				{
+					$session_error_message .= $session_error . "</br>";
+				}
 			}
 		}
 
@@ -1243,48 +1246,23 @@ class assStackQuestionAuthoringGUI
 	{
 		global $DIC;
 		$lng = $DIC->language();
-		require_once('./Customizing/global/plugins/Modules/TestQuestionPool/Questions/assStackQuestion/classes/model/configuration/class.assStackQuestionConfig.php');
 		$options = array();
 
 		//Add default option
+
+		/*
+		 * AS WE ARE USING THE TRUE/FALSE FEEDBACK FORMAT FIELD OF THE DATABASE
+		 * WHICH IS NOT USED AT THE MOMENT, AND IS ALWAYS 0 OR 1. WE HAVE TO
+		 * DEFINE VALUES FOR EACH OF THE FEEDBACK STYLES, BEGINNING BY 2, TO DISTINGUISH
+		 * QUESTION WHICH USES THIS STYLES AND THOSE WHICH NOT.
+		 */
+
 		$options[1] = $lng->txt("default");
-
-		$config_options = assStackQuestionConfig::_getStoredSettings("feedback");
-		foreach ($config_options as $option => $css_class)
-		{
-			if ($css_class != "")
-			{
-				/*
-		 		* AS WE ARE USING THE TRUE/FALSE FEEDBACK FORMAT FIELD OF THE DATABASE
-		 		* WHICH IS NOT USED AT THE MOMENT, AND IS ALWAYS 0 OR 1. WE HAVE TO
-		 		* DEFINE VALUES FOR EACH OF THE FEEDBACK STYLES, BEGINNING BY 2, TO DISTINGUISH
-		 		* QUESTION WHICH USES THIS STYLES AND THOSE WHICH NOT.
-		 		*/
-
-				switch ($option)
-				{
-					case "feedback_node_right":
-						$options[2] = $this->getPlugin()->txt($option);
-						break;
-					case "feedback_node_wrong":
-						$options[3] = $this->getPlugin()->txt($option);
-						break;
-					case "feedback_solution_hint":
-						$options[4] = $this->getPlugin()->txt($option);
-						break;
-					case "feedback_extra_info":
-						$options[5] = $this->getPlugin()->txt($option);
-						break;
-					case "feedback_plot_feedback":
-						$options[6] = $this->getPlugin()->txt($option);
-						break;
-					case "feedback_extra_1":
-						$options[7] = $this->getPlugin()->txt($option);
-						break;
-					default:
-				}
-			}
-		}
+		$options[2] = $this->getPlugin()->txt("feedback_node_right");
+		$options[3] = $this->getPlugin()->txt("feedback_node_wrong");
+		$options[4] = $this->getPlugin()->txt("feedback_solution_hint");
+		$options[5] = $this->getPlugin()->txt("feedback_extra_info");
+		$options[6] = $this->getPlugin()->txt("feedback_plot_feedback");
 
 		return $options;
 	}
